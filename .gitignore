@@ -1,0 +1,30 @@
+# Зависимости Node
+node_modules/
+
+# Скомпилированные файлы TypeScript
+dist/
+build/
+*.js.map
+
+# Переменные окружения
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Логи
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log
+
+# Prisma
+/prisma/dev.db # Если используешь SQLite для дева
+/prisma/*.sqlite # Если используешь SQLite
+
+# IDE и OS файлы
+.vscode/        # Настройки VS Code (опционально, можно оставить)
+.DS_Store       # macOS
+Thumbs.db       # Windows

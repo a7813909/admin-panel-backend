@@ -1,0 +1,16 @@
+// tsconfig.json
+    {
+      "compilerOptions": {
+        "target": "es2016",
+        "module": "commonjs",
+        "rootDir": "./src",      // !!! Важно: наши исходники будут в папке src
+        "outDir": "./dist",      // !!! Важно: скомпилированный JS будет в папке dist
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "strict": true,
+        "skipLibCheck": true,
+        "experimentalDecorators": true, // Для будущих декораторов (если захотим DI или типа того)
+        "emitDecoratorMetadata": true   // Аналогично
+      },
+      "include": ["src/**/*"] // Указываем, какие файлы компилировать
+    }
