@@ -1,7 +1,7 @@
 {
-      "name": "admin-panel-backend",
+      "name": "my-personnel-management-backend",
       "version": "1.0.0",
-      "description": "Backend for admin panel",
+      "description": "Backend API for a personnel management admin panel, built with Node.js, Express, TypeScript, Prisma, and PostgreSQL.",
       "main": "dist/server.js",
       "scripts": {
             "build": "npx tsc",
@@ -13,8 +13,8 @@
             "prisma:dbPull": "npx prisma db pull",
             "prisma:studio": "npx prisma studio"
       },
-      "keywords": [],
-      "author": "",
+      "keywords": ["node", "typescript", "prisma", "admin-panel", "postgresql"],
+      "author": "Alex_Yanikoff",
       "license": "ISC",
       "dependencies": {
             "@prisma/client": "^5.22.0",

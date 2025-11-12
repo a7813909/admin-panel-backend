@@ -1,69 +1,72 @@
 // src/app.ts
-    // Основной файл Express-приложения. Здесь настраиваются мидлвары, маршруты и обработка ошибок.
-    import express, { Request, Response, NextFunction } from 'express';
-    import helmet from 'helmet'; // Для базовой безопасности HTTP-заголовков
-    import cors from 'cors';     // Для управления доступом к API с разных доменов
-    import logger from './utils/logger'; // Наш кастомный логгер
-    import config from './config';     // Наш файл конфигурации
-    import prisma from './db';         // Наш экземпляр Prisma Client
+// Основной файл Express-приложения. Здесь настраиваются мидлвары, маршруты и обработка ошибок.
+import express, { Request, Response, NextFunction } from 'express';
+import helmet from 'helmet'; // Для базовой безопасности HTTP-заголовков
+import cors from 'cors';     // Для управления доступом к API с разных доменов
+import logger from './utils/logger'; // Наш кастомный логгер
+import config from './config';     // Наш файл конфигурации
+import prisma from './db';         // Наш экземпляр Prisma Client (если это рабочий импорт!)
 
-    // Создаем экземпляр Express-приложения
-    const app = express();
+// ===> НОВЫЙ ИМПОРТ: МОДУЛЬ АУТЕНТИФИКАЦИИ <===
+import AuthRouter from './modules/auth/auth.router'; 
+// ============================================
 
-    // --- Базовые мидлвары для "корпоративного" приложения ---
-    // Helmet помогает защитить приложение от некоторых из известных веб-уязвимостей
-    app.use(helmet());
+// Создаем экземпляр Express-приложения
+const app = express();
 
-    // CORS (Cross-Origin Resource Sharing)
-    // Разрешает или запрещает запросы с других доменов.
-    // Используем 'config.frontendCorsOrigins', который может быть массивом URL или '*'
-    app.use(cors({
-      origin: config.frontendCorsOrigins,
-      credentials: true, // Позволяет отправлять куки и заголовки авторизации
-    }));
 
-    // Парсинг JSON-тел запросов: позволяет Express читать JSON из request.body
-    app.use(express.json());
+// --- Базовые мидлвары для "корпоративного" приложения ---
+// (ОСТАВЛЯЕМ ВСЕ ТВОИ КЛАССНЫЕ НАСТРОЙКИ)
 
-    // Парсинг URL-кодированных тел запросов: для данных из HTML-форм
-    app.use(express.urlencoded({ extended: true }));
+app.use(helmet());
 
-    // --- Мидлвар для логирования HTTP-запросов ---
-    // Каждый входящий запрос будет логироваться нашим Winston логгером.
-    app.use((req: Request, res: Response, next: NextFunction) => {
-      logger.http(`Received request: [${req.method}] ${req.url}`);
-      next(); // Передаем управление следующему мидлвару или обработчику маршрута
-    });
+app.use(cors({
+  origin: config.frontendCorsOrigins,
+  credentials: true,
+}));
 
-    // --- Маршруты приложения ---
-    // Базовый маршрут для проверки работоспособности API
-    app.get('/', (req: Request, res: Response) => {
-      res.status(200).json({
-        message: 'Welcome to admin-panel-backend API! 🚀',
-        environment: process.env.NODE_ENV || 'development',
-        version: '1.0.0',
-        corsOrigins: config.frontendCorsOrigins, // Полезно для отладки CORS
-      });
-    });
+app.use(express.json());
 
-    // Тестовый маршрут для проверки подключения к базе данных через Prisma
-    app.get('/test-db', async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            // Пытаемся получить всех пользователей из базы данных
-            // (даже если таблица Users пока пуста, запрос должен пройти)
-            const users = await prisma.user.findMany();
-            res.json({ message: 'DB connection successful!', users });
-            logger.info('Successfully fetched users from DB via /test-db endpoint');
-        } catch (error) {
-            // Если произошла ошибка при запросе к БД, логируем ее и передаем дальше
-            logger.error('Failed to fetch users from DB via /test-db endpoint:', error);
-            next(error); // Передаем ошибку в централизованный обработчик ошибок (который мы добавим позже)
-        }
-    });
+app.use(express.urlencoded({ extended: true }));
 
-    // --- Обработка ошибок (будет добавлена позже в middlewares/error.middleware.ts) ---
-    // app.use(notFoundHandler); // Обработка 404 (не найденных маршрутов)
-    // app.use(errorHandler);   // Централизованный обработчик ошибок
+// --- Мидлвар для логирования HTTP-запросов ---
+app.use((req: Request, res: Response, next: NextFunction) => {
+  // Немного подправил, чтобы избежать ошибок с обратными кавычками, но суть та же
+  logger.http(`Received request: [${req.method}] ${req.url}`);
+  next();
+});
 
-    // Экспортируем Express-приложение для использования в server.ts
-    export default app;
+// --- Маршруты приложения ---
+
+
+// Все запросы, начинающиеся с /auth, будут обрабатываться AuthRouter
+app.use('/auth', AuthRouter);
+// ===============================================
+
+// Базовый маршрут для проверки работоспособности API
+app.get('/', (req: Request, res: Response) => {
+  res.status(200).json({
+    message: 'Welcome to admin-panel-backend API! 🚀',
+    environment: process.env.NODE_ENV || 'development',
+    version: '1.0.0',
+    corsOrigins: config.frontendCorsOrigins,
+  });
+});
+
+// Тестовый маршрут для проверки подключения к базе данных через Prisma
+app.get('/test-db', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const users = await prisma.user.findMany();
+        res.json({ message: 'DB connection successful!', users });
+        logger.info('Successfully fetched users from DB via /test-db endpoint');
+    } catch (error) {
+        logger.error('Failed to fetch users from DB via /test-db endpoint:', error);
+        next(error);
+    }
+});
+
+// --- Обработка ошибок (будет добавлена позже) ---
+// ...
+
+// Экспортируем Express-приложение для использования в server.ts
+export default app;
