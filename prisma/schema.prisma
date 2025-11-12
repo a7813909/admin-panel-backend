@@ -1,0 +1,20 @@
+// prisma/schema.prisma
+    datasource db {
+      provider = "postgresql"
+      url      = env("DATABASE_URL") // Здесь будет строка подключения к твоей БД
+    }
+
+    generator client {
+      provider = "prisma-client-js"
+    }
+
+    // Твоя модель User, которую мы хотим создать
+    model User {
+      id        String    @id @default(uuid())
+      email     String    @unique
+      password  String // Хэшированный пароль
+      name      String?
+      role      String    @default("ADMIN") // Или "USER", "SUPER_ADMIN"
+      createdAt DateTime  @default(now())
+      updatedAt DateTime  @updatedAt
+    }

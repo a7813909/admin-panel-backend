@@ -10,12 +10,14 @@
             "test": "echo \"No tests yet!\" && exit 0",
             "prisma:migrate": "npx prisma migrate dev --name",
             "prisma:generate": "npx prisma generate",
+            "prisma:dbPull": "npx prisma db pull",
             "prisma:studio": "npx prisma studio"
       },
       "keywords": [],
       "author": "",
       "license": "ISC",
       "dependencies": {
+            "@prisma/client": "^5.22.0",
             "bcryptjs": "^3.0.3",
             "cors": "^2.8.5",
             "dotenv": "^17.2.3",
