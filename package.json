@@ -13,7 +13,13 @@
             "prisma:dbPull": "npx prisma db pull",
             "prisma:studio": "npx prisma studio"
       },
-      "keywords": ["node", "typescript", "prisma", "admin-panel", "postgresql"],
+      "keywords": [
+            "node",
+            "typescript",
+            "prisma",
+            "admin-panel",
+            "postgresql"
+      ],
       "author": "Alex_Yanikoff",
       "license": "ISC",
       "dependencies": {
