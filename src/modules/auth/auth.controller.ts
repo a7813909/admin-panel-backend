@@ -2,7 +2,9 @@
 
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import * as jwt from 'jsonwebtoken';
+//import * as jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken'; 
+import { JWT_SECRET, JWT_EXPIRES_IN } from '../../config/index'
 
 // === ВНИМАНИЕ НА ЭТУ СТРОКУ ===
 // Используем дефолтный импорт (без {}), потому что в src/db/index.ts, скорее всего, стоит export default prisma;
@@ -10,7 +12,8 @@ import prisma from '../../db';
 // Если у тебя в db/index.ts экспорт именованный (export const prisma), то поменяй на:
 // import { prisma } from '../../db';
 
-const SALT_ROUNDS = 10;
+const SALT_ROUNDS : number = 10;
+
 
 /**
  * @route POST /auth/signup
@@ -20,6 +23,7 @@ export const signUp = async (req: Request, res: Response) => {
     // ... (весь код функции, который я давал ранее) ...
 
     const { email, password, name } = req.body;
+   
 
     if (!email || !password) {
         return res.status(400).send({ message: 'Email и пароль обязательны' });
@@ -59,11 +63,6 @@ export const signUp = async (req: Request, res: Response) => {
     }
 };
 
-// Считываем секреты из процесса Express (надеясь, что dotenv все подтянул)
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_if_not_set';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1h';
-
-
 /**
  * @route POST /auth/login
  * @desc Аутентифицирует пользователя и возвращает JWT токен.
@@ -94,13 +93,22 @@ export const signIn = async (req: Request, res: Response) => {
             return res.status(401).send({ message: 'Неверные учетные данные' });
         }
 
-        // 3. Пароль совпал! Создаем JWT токен.
-        const token = jwt.sign(
-            { userId: user.id, email: user.email, role: user.role }, // Payload - что мы кодируем
-            JWT_SECRET, // Секретный ключ из .env
-            { expiresIn: JWT_EXPIRES_IN } // Время жизни токена
-        );
+// 1. Создаем Payload и приводим его к общему типу 'object'
+const payload = { userId: user.id, role: user.role } as object;
 
+// 2. Определяем опции с явным типом
+const options: SignOptions = { 
+    expiresIn: JWT_EXPIRES_IN 
+};
+
+// 3. Вызываем jwt.sign
+const token = jwt.sign(
+    payload, // Теперь это чистый object
+    JWT_SECRET,
+    options // Теперь это явно SignOptions
+);
+
+        
         // 4. Отправляем ответ с токеном
         return res.status(200).json({
             message: 'Успешный вход',
