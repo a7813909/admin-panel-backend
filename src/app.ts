@@ -11,6 +11,8 @@ import prisma from './db';         // Наш экземпляр Prisma Client (�
 import AuthRouter from './modules/auth/auth.router'; 
 // ============================================
 
+import UserRouter from './modules/users/user.router'
+
 // Создаем экземпляр Express-приложения
 const app = express();
 
@@ -41,7 +43,10 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 // Все запросы, начинающиеся с /auth, будут обрабатываться AuthRouter
 app.use('/auth', AuthRouter);
-// ===============================================
+// Все запросы, начинающиеся с /users, будут обрабатываться UserRouter
+app.use('/users', UserRouter);
+
+
 
 // Базовый маршрут для проверки работоспособности API
 app.get('/', (req: Request, res: Response) => {
