@@ -1,15 +1,11 @@
 import { Request, Response } from 'express';
 import * as AuthService from './auth.service'; 
 
-// === УДАЛЕНЫ НЕНУЖНЫЕ ИМПОРТЫ: prisma, bcrypt, SALT_ROUNDS ===
 
-/**
- * РЕГИСТРАЦИЯ. Вынесенная логика.
- */
 export const signUp = async (req: Request, res: Response) => {
     const { email, password, name } = req.body;
     
-    // ИСПРАВЛЕН СИНТАКСИС: используем || (ИЛИ)
+    
     if (!email || !password || !name) {
         return res.status(400).send({ message: 'Email, пароль и имя обязательны' });
     }
