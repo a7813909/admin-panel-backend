@@ -1,6 +1,6 @@
  // src/db/index.ts
     // Инициализация Prisma Client и настройка его логирования.
-    import { PrismaClient } from '@prisma/client';
+    import { PrismaClient, Prisma } from '@prisma/client';
     import logger from '../utils/logger'; // Импортируем наш логгер
 
     // Создаем экземпляр Prisma Client
@@ -30,3 +30,4 @@
 
     // Экспортируем экземпляр Prisma Client для использования в других частях приложения
     export default prisma;
+    export { Prisma };
