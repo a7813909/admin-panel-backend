@@ -1,20 +1,61 @@
-// prisma/schema.prisma
-    datasource db {
-      provider = "postgresql"
-      url      = env("DATABASE_URL") // Здесь будет строка подключения к твоей БД
-    }
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
 
-    generator client {
-      provider = "prisma-client-js"
-    }
+generator client {
+  provider = "prisma-client-js"
+}
 
-    // Твоя модель User, которую мы хотим создать
-    model User {
-      id        String    @id @default(uuid())
-      email     String    @unique
-      password  String // Хэшированный пароль
-      name      String?
-      role      String    @default("ADMIN") // Или "USER", "SUPER_ADMIN"
-      createdAt DateTime  @default(now())
-      updatedAt DateTime  @updatedAt
-    }
+// === ENUMS ===
+enum Role {
+  USER
+  EMPLOYEE
+  ADMIN
+}
+
+// === СУЩНОСТИ ДЛЯ СВЯЗЕЙ ===
+
+// 1. ОТДЕЛЫ (Departament)
+model Departament {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  employees User[] 
+}
+
+// 2. ЗАДАЧИ (Task) - Для логики 1С/Битрикс
+model Task {
+  id                String    @id @default(uuid())
+  title             String    @db.VarChar(255)
+  // ... другие поля задачи
+  
+  creatorId         String?   // Разрешаем NULL для корректного удаления пользователя
+  creator           User?     @relation(name: "TaskCreator", fields: [creatorId], references: [id])
+
+  assigneeId        String?   // Переназначение задачи после удаления юзера
+  assignee          User?     @relation(name: "TaskAssignee", fields: [assigneeId], references: [id])
+  
+  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime  @default(now())
+}
+
+
+// === ОСНОВНАЯ СУЩНОСТЬ ===
+model User {
+  id                String       @id @default(uuid())
+  email             String       @unique
+  password          String      
+  name              String?      // Сделаем name обязательным
+  
+  // 🎯 Роли и Отделы
+  role              Role         @default(USER) 
+  departamentId     String
+  departament       Departament? @relation(fields: [departamentId], references: [id])
+  
+  // 🎯 Связи с задачами
+  tasks_created     Task[]       @relation(name: "TaskCreator")
+  tasks_assigned    Task[]       @relation(name: "TaskAssignee")
+  
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+}
