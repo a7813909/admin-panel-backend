@@ -13,6 +13,10 @@ import AuthRouter from './modules/auth/auth.router';
 
 import UserRouter from './modules/users/user.router'
 
+// !!! ИМПОРТИРУЕМ НОВЫЙ РОУТЕР ДЛЯ ДЕПАРТАМЕНТОВ !!!
+import departmentRouter from './modules/departments/department.router';
+
+
 // Создаем экземпляр Express-приложения
 const app = express();
 
@@ -45,6 +49,9 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 app.use('/auth', AuthRouter);
 // Все запросы, начинающиеся с /users, будут обрабатываться UserRouter
 app.use('/users', UserRouter);
+// !!! РЕГИСТРИРУЕМ НОВЫЙ РОУТЕР ДЛЯ ДЕПАРТАМЕНТОВ !!!
+app.use('/departments', departmentRouter); // Теперь POST на /departments пойдет сюда
+
 
 
 

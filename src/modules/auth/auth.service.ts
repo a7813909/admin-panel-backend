@@ -16,7 +16,8 @@ interface TokenPayload {
 // B. ПОЛНЫЕ ДАННЫЕ ИЗ БАЗЫ (ВКЛЮЧАЯ ВСЕ, ЧТО НАМ НУЖНО)
 interface UserFromDB extends TokenPayload {
     password: string; 
-    name: string | null; 
+    name: string;
+    departamentId: string; // <--- ДОБАВЛЯЕМ departamentId
 }
 
 // C. БЕЗОПАСНЫЙ ОТВЕТ КЛИЕНТУ (PublicUserView)
@@ -24,7 +25,8 @@ interface PublicUserView {
     id: string;
     email: string;
     role: string;
-    name: string | null;
+    name: string;
+     departamentId: string; // <--- ДОБАВЛЯЕМ departamentId
 }
 
 // D. РЕЗУЛЬТАТ СЕРВИСА (ВОЗВРАЩАЕТСЯ КОНТРОЛЛЕРУ)
@@ -38,6 +40,8 @@ interface RegisterPayload {
     email: string;
     password: string;
     name: string; // Сделаем name обязательным при регистрации
+       role?: 'USER' | 'EMPLOYEE' | 'ADMIN'; // Роль может быть опциональной в пейлоаде (человек сам ее не задает)
+    departamentId: string; // ID департамента ОБЯЗАТЕЛЕН
 }
 
 const SALT_ROUNDS: number = 10; 
@@ -91,6 +95,7 @@ export const signInAndGenerateToken = async (email: string, password_in: string)
         email: user.email,
         role: user.role,
         name: user.name, // name теперь безопасно, так как есть в UserFromDB и PublicUserView
+         departamentId: user.departamentId,
     };
 
     return { token, userView };
@@ -102,24 +107,27 @@ export const signInAndGenerateToken = async (email: string, password_in: string)
  */
 export const registerNewUser = async (data: RegisterPayload): Promise<PublicUserView> => { 
    
-    const userExists = await prisma.user.findUnique({ where: { email: data.email } });
-    if (userExists) {
-        throw new Error('Пользователь с таким email уже существует.'); 
-    }
     
     const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
     
-    // Создание пользователя
-    const newUser = await prisma.user.create({
-        data: {
-            email: data.email,
-            password: hashedPassword,
-            name: data.name, // Передаем name в базу
-        },
-        select: {
-            id: true, email: true, role: true, name: true // Возвращаем все поля для PublicUserView
-        }
-    }) as PublicUserView; 
+   try { 
+        const newUser = await prisma.user.create({
+            data: {
+                email: data.email,
+                password: hashedPassword,
+                name: data.name,
+                role: data.role || 'USER', 
+                departamentId: data.departamentId,
+            },
+            select: {
+                id: true, email: true, role: true, name: true, departamentId: true,
+            }
+        }) as PublicUserView; 
 
-    return newUser;
+        return newUser;
+    } catch (error: any) { // Опять 'any', потому что TS не знает тип без 'instanceof'
+        // !!! ВОТ ЗДЕСЬ ПРОСТО ПЕРЕБРАСЫВАЕМ ОШИБКУ КАК ЕСТЬ !!!
+        // Контроллер поймает ее как PrismaClientKnownRequestError
+        throw error; 
+    }
 };

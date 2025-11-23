@@ -21,23 +21,15 @@ model Departament {
   id        String   @id @default(uuid())
   name      String   @unique
   employees User[] 
+   // Добавляем поля для иерархии:
+      parentId    String?       // ID родительского департамента (может быть NULL для корневых отделов)
+      parent      Departament?  @relation("SubDepartments", fields: [parentId], references: [id], onDelete: SetNull) // Связь с родительским департаментом
+      subDepartments Departament[] @relation("SubDepartments") // Связь с дочерними департаментами
+
+      createdAt   DateTime      @default(now())
+      updatedAt   DateTime      @updatedAt
 }
 
-// 2. ЗАДАЧИ (Task) - Для логики 1С/Битрикс
-model Task {
-  id                String    @id @default(uuid())
-  title             String    @db.VarChar(255)
-  // ... другие поля задачи
-  
-  creatorId         String?   // Разрешаем NULL для корректного удаления пользователя
-  creator           User?     @relation(name: "TaskCreator", fields: [creatorId], references: [id])
-
-  assigneeId        String?   // Переназначение задачи после удаления юзера
-  assignee          User?     @relation(name: "TaskAssignee", fields: [assigneeId], references: [id])
-  
-  updatedAt         DateTime  @updatedAt
-  createdAt         DateTime  @default(now())
-}
 
 
 // === ОСНОВНАЯ СУЩНОСТЬ ===
@@ -45,16 +37,11 @@ model User {
   id                String       @id @default(uuid())
   email             String       @unique
   password          String      
-  name              String?      // Сделаем name обязательным
-  
+  name              String
   // 🎯 Роли и Отделы
   role              Role         @default(USER) 
   departamentId     String
   departament       Departament? @relation(fields: [departamentId], references: [id])
-  
-  // 🎯 Связи с задачами
-  tasks_created     Task[]       @relation(name: "TaskCreator")
-  tasks_assigned    Task[]       @relation(name: "TaskAssignee")
   
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
