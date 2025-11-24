@@ -103,7 +103,6 @@ export const deleteUserController = async (req: Request, res: Response) => {
         return res.status(200).json(deletedUser);
 
     } catch (error) {
-        // 🚨 ИСПРАВЛЕНА ЛИШНЯЯ СКОБКАnpm
         if (error instanceof Error) {
             // Если сервис кинул ошибку, что пользователь не найден
             if (error.message.includes('не найден')) {

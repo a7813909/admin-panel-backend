@@ -15,7 +15,7 @@ import UserRouter from './modules/users/user.router'
 
 // !!! ИМПОРТИРУЕМ НОВЫЙ РОУТЕР ДЛЯ ДЕПАРТАМЕНТОВ !!!
 import departmentRouter from './modules/departments/department.router';
-
+ console.log('NODE_ENV:', process.env.NODE_ENV);
 
 // Создаем экземпляр Express-приложения
 const app = express();

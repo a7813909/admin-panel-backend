@@ -1,47 +1,21 @@
-import { Router } from 'express'; 
-import * as UserController from './user.controller'; 
+import { Router } from 'express';
+import * as UserController from './user.controller';
 // Используем относительный путь для мидлваров:
-import { protect, authorize } from '../../middlewares/auth.middleware'; 
+import { protect, authorize } from '../../middlewares/auth.middleware';
+import { Role } from '@prisma/client'
 
 const userRouter = Router();
 
-// GET /users (READ ALL)
-userRouter.get(
-    '/', 
-    protect, 
-    authorize(['ADMIN']),
-    UserController.listUsers
-);
-// 2. СОЗДАНИЕ (CREATE) -> POST /users
-userRouter.post(
-    '/', 
-    protect, 
-    authorize(['ADMIN']), 
-    UserController.createUserController
-);
+// Роуты для коллекции (без ID)
+userRouter.route('/')
+    .get(protect, authorize([Role.ADMIN]), UserController.listUsers)    // GET /users
+    .post(protect, authorize([Role.ADMIN]), UserController.createUserController); // POST /users
 
-// GET /users/:id (READ ONE)
-userRouter.get(
-    '/:id', 
-    protect, 
-    authorize(['ADMIN']), 
-    UserController.getUserDetails
-);
+// Роуты для индивидуальной сущности (с ID)
+userRouter.route('/:id')
+    .get(protect, authorize([Role.ADMIN]), UserController.getUserDetails)  // GET /users/:id
+    .put(protect, authorize([Role.ADMIN]), UserController.updateUserController) // PUT /users/:id
+    .delete(protect, authorize([Role.ADMIN]), UserController.deleteUserController); // DELETE /users/:id
 
-// PUT /users/:id (PUT ONE)
-userRouter.put(
-    '/:id', 
-    protect, 
-    authorize(['ADMIN']), 
-    UserController.updateUserController
-);
-
-// DELETE /users/:id (DELETE ONE)
-userRouter.delete(
-    '/:id', 
-    protect, 
-    authorize(['ADMIN']), 
-    UserController.deleteUserController
-);
 
 export default userRouter;
