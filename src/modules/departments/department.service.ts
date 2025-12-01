@@ -26,13 +26,19 @@ export const createDepartment = async (data: CreateDepartmentData) => {
   return department;
 };
 
-// Здесь могут быть другие функции для работы с департаментами (получить, обновить, удалить и т.д.)
-// Пример:
-// export const getDepartments = async () => {
-//   return prisma.departament.findMany({
-//     include: {
-//       subDepartments: true, // Включаем дочерние департаменты, если нужно
-//       parent: true,        // Включаем родительский департамент
-//     },
-//   });
-// };
+export const getDepartments = async () => {
+  return prisma.departament.findMany({
+    // include: {           // Можно закомментировать include, если subDepartments и parent пока не нужны
+    //    subDepartments: true,
+    //    parent: true,
+    //  },
+    // Или использовать select, если хочешь только id и name:
+    select: {
+      id: true,
+      name: true,
+    },
+    orderBy: {
+      name: 'asc', // Хорошая практика, чтобы список был отсортирован
+    },
+  });
+};

@@ -23,6 +23,9 @@
       "author": "Alex_Yanikoff",
       "license": "ISC",
       "dependencies": {
+            "@mantine/core": "^8.3.9",
+            "@mantine/form": "^8.3.9",
+            "@mantine/hooks": "^8.3.9",
             "@prisma/client": "^5.22.0",
             "bcryptjs": "^3.0.3",
             "cors": "^2.8.5",

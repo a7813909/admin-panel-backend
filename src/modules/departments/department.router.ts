@@ -1,16 +1,13 @@
-import { Router } from 'express';
-import { createDepartment } from './department.controller'; // Импортируем наш контроллер
+ import { Router } from 'express';
+    // !!!!!!!!!!!!!! АВТОМАТИЧЕСКИЙ ИМПОРТ ИСПРАВЛЕН !!!!!!!!!!!!!!!!!!!!!!!!
+    import { createDepartment, getDepartments } from './department.controller'; 
 
-const router = Router();
+    const router = Router();
 
-// POST / (например, если базовый путь '/departments', то это будет POST /departments)
-// Создает новый департамент.
-router.post('/', createDepartment);
+    // Маршрут для создания департамента (POST)
+    router.post('/', createDepartment);
 
-// Здесь можно будет добавить другие роуты для департаментов, например:
-// router.get('/', getDepartments); // Получить все департаменты
-// router.get('/:id', getDepartmentById); // Получить департамент по ID
-// router.put('/:id', updateDepartment); // Обновить департамент
-// router.delete('/:id', deleteDepartment); // Удалить департамент
+    // !!! ВОТ ЭТОТ МАРШРУТ ТЕПЕРЬ АКТИВЕН И БУДЕТ ОБСЛУЖИВАТЬ ФРОНТЕНД !!!
+    router.get('/', getDepartments); 
 
-export default router;
+    export default router;

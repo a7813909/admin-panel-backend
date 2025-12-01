@@ -19,16 +19,22 @@ enum Role {
 // 1. ОТДЕЛЫ (Departament)
 model Departament {
   id        String   @id @default(uuid())
-  name      String   @unique
+  name      String   @unique  // Имя департамента уникально
   employees User[] 
-   // Добавляем поля для иерархии:
-      parentId    String?       // ID родительского департамента (может быть NULL для корневых отделов)
-      parent      Departament?  @relation("SubDepartments", fields: [parentId], references: [id], onDelete: SetNull) // Связь с родительским департаментом
-      subDepartments Departament[] @relation("SubDepartments") // Связь с дочерними департаментами
+  
+  // !!! ВОТ ЗДЕСЬ ИЗМЕНЕНИЯ ДЛЯ ПРАВИЛЬНОЙ ИЕРАРХИИ !!!
+  // parentId - это само поле, которое хранит ID родителя
+  parentId  String?   // Может быть null (для корневых департаментов)
+  // parent - это виртуальное поле, которое позволяет получить объект родительского департамента
+  parent    Departament? @relation("SubDepartments", fields: [parentId], references: [id], onDelete: SetNull) 
+  // subDepartments - это список дочерних департаментов
+  subDepartments Departament[] @relation("SubDepartments") 
+  // !!! КОНЕЦ ИЗМЕНЕНИЙ ДЛЯ ПРАВИЛЬНОЙ ИЕРАРХИИ !!!
 
-      createdAt   DateTime      @default(now())
-      updatedAt   DateTime      @updatedAt
+  createdAt   DateTime @default(now()) // Ставь @default(now()) и @updatedAt в конец модели
+  updatedAt   DateTime @updatedAt
 }
+
 
 
 
