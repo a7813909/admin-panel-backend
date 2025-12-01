@@ -1,16 +1,21 @@
-// tsconfig.json
-    {
-      "compilerOptions": {
-        "target": "es2016",
-        "module": "commonjs",
-        "rootDir": "./src",      // !!! Важно: наши исходники будут в папке src
-        "outDir": "./dist",      // !!! Важно: скомпилированный JS будет в папке dist
-        "esModuleInterop": true,
-        "forceConsistentCasingInFileNames": true,
-        "strict": true,
-        "skipLibCheck": true,
-        "experimentalDecorators": true, // Для будущих декораторов (если захотим DI или типа того)
-        "emitDecoratorMetadata": true   // Аналогично
-      },
-      "include": ["src/**/*"] // Указываем, какие файлы компилировать
-    }
+{
+  "compilerOptions": {
+    "target": "es2022", // Или es2021, es2020. Главное, чтобы был современный, поддерживающий ESM.
+    "module": "nodenext", // <--- ИЗМЕНИТЬ НА `nodenext` или `node16`!
+    "moduleResolution": "nodenext", // <--- ДОБАВИТЬ ЭТУ СТРОКУ! Важно для разрешения ES модулей в Node.js.
+    
+    "rootDir": "./src",      
+    "outDir": "./dist",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "experimentalDecorators": true, 
+    "emitDecoratorMetadata": true,
+    // Если твой проект это Node.js и ты используешь TypeORM/NestJS с декораторами
+    // и нужно генерировать метаданные для DI, то эти опции нужны.
+    // Если нет, их можно убрать, чтобы не усложнять.
+  },
+  "include": ["src/**/*"]
+  // "exclude": ["node_modules", "dist"] // Хорошая практика, чтобы не компилировать эти папки
+}
