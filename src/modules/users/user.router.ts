@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import * as UserController from './user.controller';
 // Используем относительный путь для мидлваров:
-import { protect, authorize } from '../../middlewares/auth.middleware';
+giimport { protect, authorize } from '../../middlewares/auth.middleware';
 import { Role } from '@prisma/client'
 
 const userRouter = Router();
