@@ -103,8 +103,10 @@ export const requestPasswordReset = async (req: Request, res: Response) => {
 
     // Генерируем токен для сброса пароля
     const resetToken = generateResetToken(user.id, user.email);
+    console.log('resetToken:', resetToken);
 
     // [ВАЖНО]: Здесь должна быть реальная отправка email с resetToken
+    console.log('Sending email...');
     await sendPasswordResetEmail(user.email, resetToken);
     console.log(`[DEBUG] Password Reset Link for ${user.email}: /reset-password?token=${resetToken}`);
 
