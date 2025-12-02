@@ -40,9 +40,11 @@
             "express": "^4.19.2",
             "helmet": "^8.1.0",
             "jsonwebtoken": "^9.0.2",
+            "nodemailer": "^7.0.11",
             "prisma": "^5.12.1",
             "typescript": "^5.9.3",
             "winston": "^3.18.3",
+            "@types/nodemailer": "^7.0.4",
             "zod": "^4.1.12"
       },
       "devDependencies": {

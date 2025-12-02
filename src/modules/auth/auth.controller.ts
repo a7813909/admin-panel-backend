@@ -6,8 +6,7 @@ import { PrismaClient } from '@prisma/client'; // Импортируем PrismaC
 import bcrypt from 'bcryptjs'; // Импортируем bcryptjs
 import { generateResetToken, verifyResetToken } from '../../utils/tokenUtils'; // Импортируем утилиты для токенов
 import { forgotPasswordSchema, resetPasswordSchema } from '../../schemas/authSchemas'; // Импортируем Zod-схемы
-// import { sendPasswordResetEmail } from '../../utils/emailService'; // Тебе нужно будет реализовать этот сервис
-
+import { sendPasswordResetEmail } from '../../utils/emailService'; 
 const prisma = new PrismaClient(); // Инициализируем PrismaClient
 
 // ====================================================================
@@ -106,7 +105,7 @@ export const requestPasswordReset = async (req: Request, res: Response) => {
     const resetToken = generateResetToken(user.id, user.email);
 
     // [ВАЖНО]: Здесь должна быть реальная отправка email с resetToken
-    // await sendPasswordResetEmail(user.email, resetToken);
+    await sendPasswordResetEmail(user.email, resetToken);
     console.log(`[DEBUG] Password Reset Link for ${user.email}: /reset-password?token=${resetToken}`);
 
     return res.status(200).json({ message: 'Если аккаунт с этим email существует, ссылка для сброса пароля отправлена.' });
