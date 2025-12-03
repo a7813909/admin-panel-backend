@@ -1,97 +1,160 @@
-// dotenv не нужен на Render, и его лучше не использовать в продакшн-коде,
-// если переменные уже предоставлены средой (например, Docker/Render).
-// Если ты используешь его локально, убедись, что он не конфликтует.
-// Удалим его, если он мешает на проде.
-// import dotenv from 'dotenv';
-// dotenv.config();
+import nodemailer, { Transporter, SentMessageInfo } from 'nodemailer';
+import type SMTPTransport from 'nodemailer/lib/smtp-transport'; // <--- ДОБАВЛЕНО! ИСПОЛЬЗУЕМ type ДЛЯ ЧИСТОТЫ
 
-// ==========================================================
-// !!! ПРОВЕРКА И ПАРСИНГ ПЕРЕМЕННЫХ ОКРУЖЕНИЯ !!!
-// ==========================================================
+import dotenv from 'dotenv';
+dotenv.config();
 
-const getEnvVar = (name: string, isOptional: boolean = false): string => {
+const getRequiredEnvVar = (name: string): string => {
     const value = process.env[name];
-    if (!isOptional && !value) {
-        // На Render это должно привести к ошибке при запуске, если переменной нет
+    if (!value) {
         const errorMessage = `❌ CRITICAL ERROR: Environment variable ${name} is missing!`;
         console.error(errorMessage);
-        if (process.env.NODE_ENV === 'production') {
-            throw new Error(errorMessage);
+        throw new Error(errorMessage);
         }
-        // В dev-режиме, если нет, вернем заглушку, но это приведет к ошибке Nodemailer
-        return ''; 
-    }
-    return value || '';
+    return value;
 };
 
-const SMTP_HOST = getEnvVar('SMTP_HOST');
-const SMTP_PORT_STR = getEnvVar('SMTP_PORT');
-const SMTP_USER = getEnvVar('SMTP_USER');
-const SMTP_PASSWORD = getEnvVar('SMTP_PASSWORD');
-const FRONTEND_URL = getEnvVar('FRONTEND_URL');
-const EMAIL_FROM_ADDRESS = getEnvVar('EMAIL_FROM', true) || '"My Admin Panel" <no-reply@yourdomain.com>'; // С дефолтным значением
+const SMTP_HOST: string = getRequiredEnvVar('SMTP_HOST');
+const SMTP_PORT_STR: string = getRequiredEnvVar('SMTP_PORT');
+const SMTP_USER: string = getRequiredEnvVar('SMTP_USER');
+const SMTP_PASSWORD: string = getRequiredEnvVar('SMTP_PASSWORD');
+const FRONTEND_URL: string = getRequiredEnvVar('FRONTEND_URL');
+const EMAIL_FROM_ADDRESS: string = getRequiredEnvVar('EMAIL_FROM_ADDRESS');
 
-const SMTP_PORT = SMTP_PORT_STR ? parseInt(SMTP_PORT_STR, 10) : undefined;
-const IS_SECURE_PORT = SMTP_PORT === 465; // Если порт 465, то secure: true
-const nodemailer = require('nodemailer');
+const SMTP_PORT: number = parseInt(SMTP_PORT_STR, 10);
+if (isNaN(SMTP_PORT)) {
+    const errorMessage = `❌ CRITICAL ERROR: SMTP_PORT is not a valid number: ${SMTP_PORT_STR}`;
+    console.error(errorMessage);
+    throw new Error(errorMessage);
+}
+
+const IS_SECURE_PORT: boolean = SMTP_PORT === 465;
+const IS_STARTTLS_PORT: boolean = SMTP_PORT === 587 || SMTP_PORT === 2525;
+
+
+// Логирование...
 
 // ==========================================================
 // !!! СОЗДАНИЕ ТРАНСПОРТЕРА NODEMAILER !!!
 // ==========================================================
 
-// Этот объект транспорта создается только если все необходимые переменные есть
-const transporter = nodemailer.createTransport({
-  host: SMTP_HOST,
-  port: SMTP_PORT,
-  secure: IS_SECURE_PORT, // true для 465 порта (SSL), false для других (TLS)
-  auth: {
-    user: SMTP_USER,
-    pass: SMTP_PASSWORD,
-  },
-  // !!! РЕКОМЕНДУЕТСЯ для Gmail в облаке, чтобы обойти проблемы с SSL-сертификатами
-  // Но может снизить безопасность, используй с осторожностью!
-  tls: {
-    rejectUnauthorized: false
-  }
+// Явно указываем, что это SMTP-конфигурация
+const transporterOptions: SMTPTransport.Options = { // <--- ИЗМЕНЕНО!
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: IS_SECURE_PORT,
+    requireTLS: IS_STARTTLS_PORT,
+    auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASSWORD,
+    },
+    tls: {
+      rejectUnauthorized: false
+    },
+    connectionTimeout: 15000 
+};
+
+// Теперь передаем эти явно типизированные опции в createTransport
+const transporter: Transporter<SentMessageInfo> = nodemailer.createTransport(transporterOptions); // <-- ИЗМЕНЕНО!
+
+// Добавляем обработчик ошибок для самого transporter'а.
+// Это ловит ошибки, которые могут произойти после создания transporter, но до sendMail.
+transporter.on('error', (err: Error) => { // Указываем тип Error для параметра err
+    console.error('❌ Nodemailer Transporter Runtime Error:', err);
 });
 
 
+// ==========================================================
+// !!! ФУНКЦИЯ ДЛЯ ОТПРАВКИ EMAIL !!!
+// ==========================================================
+
+// Интерфейс для опций email
+interface EmailOptions {
+    to: string;
+    subject: string;
+    html: string;
+    text?: string; // plain text версия письма - хорошая практика
+}
+
 /**
- * Отправляет email со ссылкой для сброса пароля.
- * @param to - Email получателя.
- * @param token - Токен для сброса пароля.
+ * Отправляет email.
+ * @param options - Объект с данными для письма (to, subject, html, text).
  */
-export const sendPasswordResetEmail = async (to: string, token: string) => {
-    // Внутренняя проверка, если вдруг transporter не создался из-за отсутствия ENV
-    if (!transporter || Object.values(transporter.options).some(val => !val)) {
-        console.error("Skipping email send: Nodemailer transporter is not fully configured due to missing environment variables.");
-        throw new Error("Email service not configured correctly."); // Выбросить ошибку, т.к. почта критична
+export const sendEmail = async (options: EmailOptions): Promise<SentMessageInfo> => {
+    // ВРЕМЕННО: Логируем опции письма перед отправкой для дебага
+    if (process.env.NODE_ENV !== 'production' || process.env.LOG_LEVEL === 'debug') {
+        console.log('--- Attempting to send email ---');
+        console.log(`From: ${EMAIL_FROM_ADDRESS}`); // Логируем From адрес
+        console.log(`To: ${options.to}`);
+        console.log(`Subject: ${options.subject}`);
+        console.log('---------------------------------');
     }
 
-    const resetLink = `${FRONTEND_URL}/reset-password?token=${token}`; // Корректная HTTP-ссылка!
+    const mailOptions = {
+        from: EMAIL_FROM_ADDRESS, // Теперь берется из новой, обязательной переменной
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
+        text: options.text,
+    };
 
     try {
-        console.log(`Sending email to ${to} with reset link: ${resetLink}`); // DEBUG-лог
-        await transporter.sendMail({
-            from: EMAIL_FROM_ADDRESS, // Используем переменную, или дефолт
-            to: to,
-            subject: 'Password Reset Request for My Admin Panel',
-            html: `
-                <p>Hello,</p>
-                <p>You have requested a password reset for your account on My Admin Panel.</p>
-                <p>Please click on the following link to reset your password:</p>
-                <p><a href="${resetLink}">Reset your password here</a></p>
-                <p>This link will expire in 1 hour.</p>
-                <p>If you did not request a password reset, please ignore this email.</p>
-                <br>
-                <p>Regards,</p>
-                <p>My Admin Panel Team</p>
-            `, // <<<--- ЭТОТ БЭКТИК ЗАКРЫВАЕТ HTML !!!
-            text: `Hello,\nYou have requested a password reset for your account on My Admin Panel.\nPlease visit the following link to reset your password: ${resetLink}\nThis link will expire in 1 hour.\nIf you did not request a password reset, please ignore this email.\nRegards,\nMy Admin Panel Team.`,
-        });
-        console.log(`✅ Email sent to ${to} with reset link.`);
-    } catch (error: any) { // Явно указываем тип 'any' для ошибок
-        console.error(`❌ Error sending password reset email to ${to}:`, error);
-        throw new Error(`Failed to send email: ${error.message || 'unknown error'}`);
+        let info = await transporter.sendMail(mailOptions);
+        console.log('✅ Email sent: %s', info.messageId);
+        // ВРЕМЕННО: Выводим всю информацию об отправке для более глубокого дебага
+        if (process.env.NODE_ENV !== 'production' || process.env.LOG_LEVEL === 'debug') {
+             console.log('Nodemailer raw response (info):', info);
+        }
+        return info;
+    } catch (error: unknown) { // Используем 'unknown' (как требуют современные правила TS)
+        console.error('❌ Error sending email via Nodemailer:', error);
+        
+        // Корректная обработка ошибки типа 'unknown' для извлечения сообщения
+        let errorMessage = 'Unknown error during email send.';
+        if (error instanceof Error) {
+            errorMessage = error.message;
+        } else if (typeof error === 'string') {
+            errorMessage = error;
+        }
+        
+        // Перебрасываем ошибку дальше, чтобы вызвавшая функция могла ее обработать.
+        throw new Error(`Failed to send email: ${errorMessage}`);
     }
 };
+
+// ==========================================================
+// !!! ЭКСПОРТЫ ДЛЯ СБРОСА ПАРОЛЯ И ПРОЧИХ НУЖД !!!
+// ==========================================================
+
+/**
+ * Отправляет письмо для сброса пароля с динамической ссылкой.
+ * @param to - Email получателя.
+ * @param resetToken - Токен для сброса пароля.
+ */
+export const sendPasswordResetEmail = async (to: string, resetToken: string): Promise<SentMessageInfo> => {
+    const resetLink = `${FRONTEND_URL}/reset-password?token=${resetToken}`; // Ссылка на твой фронтенд
+
+    const subject = 'Password Reset Request for My Admin Panel';
+    const htmlContent = `
+        <p>Hello,</p>
+        <p>You have requested a password reset for your account on My Admin Panel.</p>
+        <p>Please click on the following link to reset your password:</p>
+        <p><a href="${resetLink}">Reset your password here</a></p>
+        <p>This link will expire in 1 hour.</p>
+        <p>If you did not request a password reset, please ignore this email.</p>
+        <br>
+        <p>Regards,</p>
+        <p>My Admin Panel Team</p>
+    `;
+    const textContent = `Hello,\nYou have requested a password reset for your account on My Admin Panel.\nPlease visit the following link to reset your password: ${resetLink}\nThis link will expire in 1 hour.\nIf you did not request a password reset, please ignore this email.\nRegards,\nMy Admin Panel Team`;
+
+    return await sendEmail({
+        to: to,
+        subject: subject,
+        html: htmlContent,
+        text: textContent,
+    });
+};
+
+// Также экспортируем FRONTEND_URL, если он нужен для формирования ссылок вне этого файла
+export { FRONTEND_URL };
