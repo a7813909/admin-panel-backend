@@ -1,7 +1,7 @@
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
 import { SignOptions } from 'jsonwebtoken';
-import prisma from '../../db'; 
+import prisma from '../../db';
 import config from '../../config';
 
 // === ТИПИЗАЦИЯ ===
@@ -14,19 +14,26 @@ interface TokenPayload {
 }
 
 // B. ПОЛНЫЕ ДАННЫЕ ИЗ БАЗЫ (ВКЛЮЧАЯ ВСЕ, ЧТО НАМ НУЖНО)
-interface UserFromDB extends TokenPayload {
-    password: string; 
+interface UserFromDB { // Убрал extends TokenPayload, чтобы явно управлять полями
+    id: string;
+    email: string;
+    role: string;
+    password: string; // <-- ИСПРАВЛЕНО: passwordHash, а не password
     name: string;
-    departamentId: string; // <--- ДОБАВЛЯЕМ departamentId
+    departamentId?: string; // <= Сделал опциональным, как на фронтенде
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 // C. БЕЗОПАСНЫЙ ОТВЕТ КЛИЕНТУ (PublicUserView)
-interface PublicUserView {
+export interface PublicUserView { // <-- ДОБАВИЛ `export` т.к. может понадобится другим файлам
     id: string;
     email: string;
     role: string;
     name: string;
-     departamentId: string; // <--- ДОБАВЛЯЕМ departamentId
+    departamentId?: string; // <= Сделал опциональным
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 // D. РЕЗУЛЬТАТ СЕРВИСА (ВОЗВРАЩАЕТСЯ КОНТРОЛЛЕРУ)
@@ -39,26 +46,25 @@ interface UserAuthResult {
 interface RegisterPayload {
     email: string;
     password: string;
-    name: string; // Сделаем name обязательным при регистрации
-       role?: 'USER' | 'EMPLOYEE' | 'ADMIN'; // Роль может быть опциональной в пейлоаде (человек сам ее не задает)
-    departamentId: string; // ID департамента ОБЯЗАТЕЛЕН
+    name: string;
+    role?: 'USER' | 'EMPLOYEE' | 'ADMIN';
+    departamentId?: string; // <= Сделал опциональным
 }
 
-const SALT_ROUNDS: number = 10; 
+const SALT_ROUNDS: number = 10;
 
 /**
  * Генерирует и подписывает JWT токен.
  */
 export const generateToken = (user: TokenPayload): string => {
-    const payload = { 
-        userId: user.id, 
-        email: user.email, 
-        role: user.role 
+    const payload = {
+        userId: user.id,
+        email: user.email,
+        role: user.role
     };
-    
-    // Костыль для ТС. Утверждаем тип как string | number, чтобы избежать as any.
-    const options: SignOptions = { 
-        expiresIn: (config.jwtExpiresIn || '1h') as any
+
+    const options: SignOptions = {
+        expiresIn: (config.jwtExpiresIn || '1h') as any // <--- Утверждаем как string
     };
 
     return jwt.sign(payload, config.jwtSecret, options);
@@ -70,32 +76,48 @@ export const generateToken = (user: TokenPayload): string => {
  */
 export const signInAndGenerateToken = async (email: string, password_in: string): Promise<UserAuthResult | null> => {
 
-    // 1. Ищем пользователя. Кастуем к полному типу UserFromDB.
+    // 1. Ищем пользователя С ЯВНЫМ ВЫБОРОМ ВСЕХ НУЖНЫХ ПОЛЕЙ
     const user = await prisma.user.findUnique({
-        where: { email }
-    }) as UserFromDB | null; 
+        where: { email },
+        select: { // <--- ВОТ ЭТО БЫЛО УПУЩЕНО В ЭТОЙ ФУНКЦИИ!
+            id: true,
+            email: true,
+            password: true, // Нужно для проверки пароля
+            name: true,
+            role: true,
+            departamentId: true,
+            createdAt: true, // <--- ДОБАВЛЕНО
+            updatedAt: true, // <--- ДОБАВЛЕНО
+        }
+    });
 
-    if (!user) {
+    if (!user) { // Если пользователь не найден
         return null;
     }
 
     // 2. Проверяем пароль
-    const isPasswordValid = await bcrypt.compare(password_in, user.password);
+    const isPasswordValid = await bcrypt.compare(password_in, user.password); // <--- ИСПОЛЬЗУЕМ passwordHash
 
     if (!isPasswordValid) {
         return null;
     }
 
     // 3. Генерируем токен. Передаем только минимальный пейлоад.
-    const token = generateToken(user); 
+    const token = generateToken({
+        id: user.id,
+        email: user.email,
+        role: user.role
+    });
 
     // 4. Формируем безопасный ответ для клиента
     const userView: PublicUserView = {
         id: user.id,
         email: user.email,
         role: user.role,
-        name: user.name, // name теперь безопасно, так как есть в UserFromDB и PublicUserView
-         departamentId: user.departamentId,
+        name: user.name,
+        departamentId: user.departamentId,
+        createdAt: user.createdAt, // <--- ТЕПЕРЬ ОНО ЗДЕСЬ ПОЯВИТСЯ
+        updatedAt: user.updatedAt, // <--- ТЕПЕРЬ ОНО ЗДЕСЬ ПОЯВИТСЯ
     };
 
     return { token, userView };
@@ -103,31 +125,42 @@ export const signInAndGenerateToken = async (email: string, password_in: string)
 
 
 /**
- * Регистрирует нового пользователя. 
+ * Регистрирует нового пользователя.
  */
-export const registerNewUser = async (data: RegisterPayload): Promise<PublicUserView> => { 
-   
-    
+export const registerNewUser = async (data: RegisterPayload): Promise<PublicUserView> => {
     const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
-    
-   try { 
+
+    try {
         const newUser = await prisma.user.create({
             data: {
                 email: data.email,
-                password: hashedPassword,
+                password: hashedPassword, // <--- ИСПОЛЬЗУЕМ passwordHash (как в schema.prisma)
                 name: data.name,
-                role: data.role || 'USER', 
-                departamentId: data.departamentId,
+                role: data.role || 'USER',
+                departamentId: data.departamentId, // Если departamentId опционален, добавить || null
             },
-            select: {
+            select: { // <--- ДОБАВЛЕНЫ createdAt и updatedAt ЗДЕСЬ
                 id: true, email: true, role: true, name: true, departamentId: true,
+                createdAt: true,
+                updatedAt: true,
             }
-        }) as PublicUserView; 
+        });
 
-        return newUser;
-    } catch (error: any) { // Опять 'any', потому что TS не знает тип без 'instanceof'
-        // !!! ВОТ ЗДЕСЬ ПРОСТО ПЕРЕБРАСЫВАЕМ ОШИБКУ КАК ЕСТЬ !!!
-        // Контроллер поймает ее как PrismaClientKnownRequestError
-        throw error; 
+        // Prisma.UserCreateInput не гарантирует PublicUserView,
+        // поэтому копируем поля явно или создаем более точный тип.
+        const returnedUser: PublicUserView = {
+            id: newUser.id,
+            email: newUser.email,
+            role: newUser.role,
+            name: newUser.name,
+            departamentId: newUser.departamentId,
+            createdAt: newUser.createdAt,
+            updatedAt: newUser.updatedAt,
+        }
+
+        return returnedUser;
+
+    } catch (error: any) {
+        throw error;
     }
 };

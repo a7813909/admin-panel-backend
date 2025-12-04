@@ -3,7 +3,6 @@
     "target": "es2022", // Или es2021, es2020. Главное, чтобы был современный, поддерживающий ESM.
     "module": "nodenext", // <--- ИЗМЕНИТЬ НА `nodenext` или `node16`!
     "moduleResolution": "nodenext", // <--- ДОБАВИТЬ ЭТУ СТРОКУ! Важно для разрешения ES модулей в Node.js.
-    
     "rootDir": "./src",      
     "outDir": "./dist",
     "esModuleInterop": true,
