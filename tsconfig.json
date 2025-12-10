@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "es2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "Nodenext",
+    "moduleResolution": "Nodenext",
     "rootDir": ".",
     "outDir": "./dist",
     "esModuleInterop": true,
@@ -11,7 +11,7 @@
     "skipLibCheck": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-       "types": ["node"]
+    "types": ["node"]
   },
-  "include": ["src/**/*", "./prisma.config.ts"] // <--- ВОТ ТАК!
+  "include": ["src/**/*", "./prisma.config.ts"] 
 }
