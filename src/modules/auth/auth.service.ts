@@ -3,7 +3,7 @@ import * as jwt from 'jsonwebtoken';
 import { SignOptions } from 'jsonwebtoken';
 import prisma from '../../db';
 import config from '../../config';
-
+import { Role } from '@prisma/client'
 // === ТИПИЗАЦИЯ ===
 
 // A. ПЕЙЛОАД ТОКЕНА (МИНИМАЛЬНЫЙ НАБОР ДАННЫХ ДЛЯ JWT)
@@ -20,7 +20,7 @@ interface UserFromDB { // Убрал extends TokenPayload, чтобы явно �
     role: string;
     password: string; // <-- ИСПРАВЛЕНО: passwordHash, а не password
     name: string;
-    departamentId?: string; // <= Сделал опциональным, как на фронтенде
+    //departamentId: string; 
     createdAt: Date;
     updatedAt: Date;
 }
@@ -31,7 +31,8 @@ export interface PublicUserView { // <-- ДОБАВИЛ `export` т.к. може
     email: string;
     role: string;
     name: string;
-    departamentId?: string; // <= Сделал опциональным
+    //departamentId?: string; // <= Сделал опциональным
+    departmentName: string;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -47,8 +48,7 @@ interface RegisterPayload {
     email: string;
     password: string;
     name: string;
-    role?: 'USER' | 'EMPLOYEE' | 'ADMIN';
-    departamentId?: string; // <= Сделал опциональным
+    departamentId: string;
 }
 
 const SALT_ROUNDS: number = 10;
@@ -85,9 +85,14 @@ export const signInAndGenerateToken = async (email: string, password_in: string)
             password: true, // Нужно для проверки пароля
             name: true,
             role: true,
-            departamentId: true,
+            //departamentId: true,
             createdAt: true, // <--- ДОБАВЛЕНО
             updatedAt: true, // <--- ДОБАВЛЕНО
+            departament: {
+                select: {
+                    name: true, // Выбираем только название из связанного объекта
+                },
+            },
         }
     });
 
@@ -115,9 +120,11 @@ export const signInAndGenerateToken = async (email: string, password_in: string)
         email: user.email,
         role: user.role,
         name: user.name,
-        departamentId: user.departamentId,
+        //departamentId: user.departamentId,
+        departmentName: user.departament.name,
         createdAt: user.createdAt, // <--- ТЕПЕРЬ ОНО ЗДЕСЬ ПОЯВИТСЯ
         updatedAt: user.updatedAt, // <--- ТЕПЕРЬ ОНО ЗДЕСЬ ПОЯВИТСЯ
+
     };
 
     return { token, userView };
@@ -136,11 +143,20 @@ export const registerNewUser = async (data: RegisterPayload): Promise<PublicUser
                 email: data.email,
                 password: hashedPassword, // <--- ИСПОЛЬЗУЕМ passwordHash (как в schema.prisma)
                 name: data.name,
-                role: data.role || 'USER',
+                role: Role.USER,  
                 departamentId: data.departamentId, // Если departamentId опционален, добавить || null
             },
             select: { // <--- ДОБАВЛЕНЫ createdAt и updatedAt ЗДЕСЬ
-                id: true, email: true, role: true, name: true, departamentId: true,
+                id: true,
+                email: true,
+                role: true,
+                name: true,
+                //departamentId: true,
+                departament: {
+                    select: {
+                        name: true, // Выбираем только название
+                    },
+                },
                 createdAt: true,
                 updatedAt: true,
             }
@@ -153,7 +169,8 @@ export const registerNewUser = async (data: RegisterPayload): Promise<PublicUser
             email: newUser.email,
             role: newUser.role,
             name: newUser.name,
-            departamentId: newUser.departamentId,
+            departmentName: newUser.departament.name,
+            //departamentId: newUser.departamentId,
             createdAt: newUser.createdAt,
             updatedAt: newUser.updatedAt,
         }

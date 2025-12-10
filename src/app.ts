@@ -8,14 +8,14 @@ import config from './config';     // Наш файл конфигурации
 import prisma from './db';         // Наш экземпляр Prisma Client (если это рабочий импорт!)
 
 // ===> НОВЫЙ ИМПОРТ: МОДУЛЬ АУТЕНТИФИКАЦИИ <===
-import AuthRouter from './modules/auth/auth.router'; 
+import AuthRouter from './modules/auth/auth.router';
 // ============================================
 
 import UserRouter from './modules/users/user.router'
 
 // !!! ИМПОРТИРУЕМ НОВЫЙ РОУТЕР ДЛЯ ДЕПАРТАМЕНТОВ !!!
 import departmentRouter from './modules/departments/department.router';
- console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('NODE_ENV:', process.env.NODE_ENV);
 
 // Создаем экземпляр Express-приложения
 const app = express();
@@ -48,7 +48,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 // Все запросы, начинающиеся с /auth, будут обрабатываться AuthRouter
 app.use('/auth', AuthRouter);
 // Все запросы, начинающиеся с /users, будут обрабатываться UserRouter
-app.use('/users', UserRouter);
+app.use('/api/users', UserRouter);
 // !!! РЕГИСТРИРУЕМ НОВЫЙ РОУТЕР ДЛЯ ДЕПАРТАМЕНТОВ !!!
 app.use('/departments', departmentRouter); // Теперь POST на /departments пойдет сюда
 
@@ -67,14 +67,14 @@ app.get('/', (req: Request, res: Response) => {
 
 // Тестовый маршрут для проверки подключения к базе данных через Prisma
 app.get('/test-db', async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const users = await prisma.user.findMany();
-        res.json({ message: 'DB connection successful!', users });
-        logger.info('Successfully fetched users from DB via /test-db endpoint');
-    } catch (error) {
-        logger.error('Failed to fetch users from DB via /test-db endpoint:', error);
-        next(error);
-    }
+  try {
+    const users = await prisma.user.findMany();
+    res.json({ message: 'DB connection successful!', users });
+    logger.info('Successfully fetched users from DB via /test-db endpoint');
+  } catch (error) {
+    logger.error('Failed to fetch users from DB via /test-db endpoint:', error);
+    next(error);
+  }
 });
 
 // --- Обработка ошибок (будет добавлена позже) ---

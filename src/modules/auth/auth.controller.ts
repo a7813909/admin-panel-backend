@@ -15,7 +15,7 @@ const prisma = new PrismaClient(); // Инициализируем PrismaClient
 export const signUp = async (req: Request, res: Response) => {
     const { email, password, name, role, departamentId } = req.body;
 
-    // !!! ИСПРАВЛЕННАЯ СИТАКСИЧЕСКИ ВАЛИДАЦИЯ !!!
+    
     if (!email || !password || !name || !departamentId) { // Использовать || (ИЛИ), а не !
         return res.status(400).send({ message: 'Email, пароль, имя и ID департамента обязательны.' });
     }
@@ -27,7 +27,7 @@ export const signUp = async (req: Request, res: Response) => {
     // if (!isValidUUID(departamentId)) { /* ... */ }
 
     try {
-        const newUser = await AuthService.registerNewUser({ email, password, name, role, departamentId });
+        const newUser = await AuthService.registerNewUser({ email, password, name, departamentId });
 
         return res.status(201).json({
             message: 'Пользователь успешно зарегистрирован',
