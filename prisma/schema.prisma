@@ -32,7 +32,7 @@ model Departament {
   // !!! КОНЕЦ ИЗМЕНЕНИЙ ДЛЯ ПРАВИЛЬНОЙ ИЕРАРХИИ !!!
 
   createdAt   DateTime @default(now()) // Ставь @default(now()) и @updatedAt в конец модели
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @default(now()) 
 }
 
 
@@ -50,5 +50,5 @@ model User {
   departament       Departament @relation(fields: [departamentId], references: [id])
   
   createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
+  updatedAt   DateTime @default(now())
 }

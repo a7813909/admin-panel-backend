@@ -1,31 +1,44 @@
 import prisma from '../../db';
 import * as bcrypt from 'bcryptjs';
 
-import { 
-    PublicUser, 
-    AdminCreateUserPayload, 
-    AdminUpdateUserPayload 
+import {
+    PublicUser,
+    AdminCreateUserPayload,
+    AdminUpdateUserPayload
 } from '../../types/user-types'; // Это правильный импорт типов
 
-const SALT_ROUNDS = 10; 
+const SALT_ROUNDS = 10;
 
 // =========================================================================
 // ЧТЕНИЕ (READ)
 // =========================================================================
 
 export const getAllUsers = async (): Promise<PublicUser[]> => {
-  const users = await prisma.user.findMany({
-    select: { id: true, email: true, name: true, role: true, createdAt: true, updatedAt: true, departamentId: true },
-  });
-  return users as PublicUser[]; 
+    const users = await prisma.user.findMany({
+        select: {
+            id: true, 
+            email: true, 
+            name: true, 
+            role: true, 
+            createdAt: true, 
+            updatedAt: true, 
+            departamentId: true,
+            departament: {
+                select: {
+                    name: true, // <-- Получаем название отдела
+                },
+            }
+        },
+    });
+    return users as PublicUser[];
 };
 
 export const getUserById = async (id: string): Promise<PublicUser | null> => {
-  const user = await prisma.user.findUnique({
-    where: { id: id },
-    select: { id: true, email: true, name: true, role: true, createdAt: true, updatedAt: true, departamentId: true },
-  });
-  return user as PublicUser | null;
+    const user = await prisma.user.findUnique({
+        where: { id: id },
+        select: { id: true, email: true, name: true, role: true, createdAt: true, updatedAt: true, departamentId: true },
+    });
+    return user as PublicUser | null;
 };
 
 // =========================================================================
@@ -33,7 +46,7 @@ export const getUserById = async (id: string): Promise<PublicUser | null> => {
 // =========================================================================
 
 export const createAdminUser = async (data: AdminCreateUserPayload): Promise<PublicUser> => {
-    
+
     // Проверка email (логика из твоего контроллера)
     const userExists = await prisma.user.findUnique({ where: { email: data.email } });
     if (userExists) {
@@ -61,12 +74,12 @@ export const createAdminUser = async (data: AdminCreateUserPayload): Promise<Pub
 // =========================================================================
 
 export const updateAdminUser = async (id: string, data: AdminUpdateUserPayload): Promise<PublicUser> => {
-    
+
     // 🎯 ПРОВЕРКА УНИКАЛЬНОСТИ EMAIL ПЕРЕД ОБНОВЛЕНИЕМ
     if (data.email) {
-        const userWithSameEmail = await prisma.user.findUnique({ 
+        const userWithSameEmail = await prisma.user.findUnique({
             where: { email: data.email },
-            select: { id: true } 
+            select: { id: true }
         });
 
         // Если найден пользователь с таким же email И этот пользователь НЕ ЕСТЬ ТЕКУЩИЙ ЮЗЕР (id != id)
@@ -74,20 +87,20 @@ export const updateAdminUser = async (id: string, data: AdminUpdateUserPayload):
             throw new Error(`Email "${data.email}" уже используется другим пользователем.`);
         }
     }
-    
+
     // Хеширование пароля и создание объекта для обновления
-    const updateData: any = { ...data }; 
+    const updateData: any = { ...data };
 
     if (updateData.password) {
         updateData.password = await bcrypt.hash(updateData.password, SALT_ROUNDS);
     }
-    
+
     const updatedUser = await prisma.user.update({
         where: { id },
         data: updateData,
         select: { id: true, email: true, name: true, role: true, createdAt: true, updatedAt: true, departamentId: true }
     });
-    
+
     return updatedUser as PublicUser;
 };
 
@@ -96,14 +109,14 @@ export const updateAdminUser = async (id: string, data: AdminUpdateUserPayload):
 // =========================================================================
 
 export const deleteUser = async (userId: string): Promise<PublicUser> => {
-    
+
     // 1. Проверка существования
     const userToDelete = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
-    
+
     if (!userToDelete) {
         throw new Error('Пользователь не найден.'); // Ошибку поймает контроллер как 404
     }
-    
+
     // 2. ЦЕЛОСТНОСТЬ ДАННЫХ (Здесь должна быть логика очистки связей)
 
     // 3. ФАКТИЧЕСКОЕ УДАЛЕНИЕ
@@ -111,6 +124,6 @@ export const deleteUser = async (userId: string): Promise<PublicUser> => {
         where: { id: userId },
         select: { id: true, email: true, name: true, role: true, createdAt: true, updatedAt: true, departamentId: true }
     });
-    
+
     return deletedUser as PublicUser;
 };

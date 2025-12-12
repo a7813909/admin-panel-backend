@@ -49,6 +49,7 @@ interface RegisterPayload {
     password: string;
     name: string;
     departamentId: string;
+    role: string
 }
 
 const SALT_ROUNDS: number = 10;
@@ -143,7 +144,7 @@ export const registerNewUser = async (data: RegisterPayload): Promise<PublicUser
                 email: data.email,
                 password: hashedPassword, // <--- ИСПОЛЬЗУЕМ passwordHash (как в schema.prisma)
                 name: data.name,
-                role: Role.USER,  
+                role: data.role as any,  
                 departamentId: data.departamentId, // Если departamentId опционален, добавить || null
             },
             select: { // <--- ДОБАВЛЕНЫ createdAt и updatedAt ЗДЕСЬ
