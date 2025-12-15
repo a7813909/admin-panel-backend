@@ -1,17 +1,18 @@
 {
-  "compilerOptions": {
-    "target": "es2022",
-    "module": "Nodenext",
-    "moduleResolution": "Nodenext",
-    "rootDir": ".",
-    "outDir": "./dist",
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "strict": true,
-    "skipLibCheck": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "types": ["node"]
-  },
-  "include": ["src/**/*", "./prisma.config.ts"] 
-}
+      "compilerOptions": {
+        "target": "es2022",
+        "module": "NodeNext",          // Может понадобиться Node16, если NodeNext вызовет проблемы
+        "moduleResolution": "NodeNext", // Может понадобиться Node16, если NodeNext вызовет проблемы
+        "rootDir": "./src",            // ИСПРАВЛЕНО: исходники только из src
+        "outDir": "./dist",
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "strict": true,
+        "skipLibCheck": true,
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "types": ["node"]
+      },
+      "include": ["src/**/*"], // ИСПРАВЛЕНО: убрали prisma.config.ts отсюда
+      "exclude": ["node_modules", "dist"] // Добавил exclude для чистоты
+    }
